@@ -30,6 +30,9 @@ public class User {
     @Min(value = 18, message = "Age must be atleast 18")
     private Integer age;
 
+    @Column
+    private String passwordHash;
+
     public User(){
 
     }
