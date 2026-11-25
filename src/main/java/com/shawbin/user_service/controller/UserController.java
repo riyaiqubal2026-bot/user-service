@@ -1,15 +1,13 @@
 package com.shawbin.user_service.controller;
 
-import com.shawbin.user_service.dto.LoginRequest;
-import com.shawbin.user_service.dto.LoginResponse;
-import com.shawbin.user_service.dto.RegisterRequest;
-import com.shawbin.user_service.dto.UserResponse;
+import com.shawbin.user_service.dto.*;
 import com.shawbin.user_service.entity.User;
 import com.shawbin.user_service.service.JwtService;
 import com.shawbin.user_service.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -113,6 +111,34 @@ public class UserController {
         }
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(
+            Authentication authentication) {
 
+        Long userId = Long.parseLong(authentication.getName());
+
+        return userService.getUserById(userId)
+                .map(this::toUserResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            Authentication authentication,
+            @Valid @RequestBody UpdateUserRequest request) {
+
+        Long userId = Long.parseLong(authentication.getName());
+
+        try {
+            return userService.updateCurrentUser(userId, request)
+                    .map(this::toUserResponse)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
 }

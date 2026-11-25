@@ -1,6 +1,7 @@
 package com.shawbin.user_service.service;
 
 import com.shawbin.user_service.dto.RegisterRequest;
+import com.shawbin.user_service.dto.UpdateUserRequest;
 import com.shawbin.user_service.entity.User;
 import com.shawbin.user_service.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -80,5 +81,24 @@ public class UserService {
         }
 
         return user;
+    }
+
+    public Optional<User> updateCurrentUser(
+            Long id,
+            UpdateUserRequest request) {
+
+        return userRepository.findById(id).map(existingUser -> {
+
+            if (!existingUser.getEmail().equals(request.getEmail())
+                    && userRepository.existsByEmail(request.getEmail())) {
+                throw new IllegalArgumentException("Email already exists");
+            }
+
+            existingUser.setName(request.getName());
+            existingUser.setEmail(request.getEmail());
+            existingUser.setAge(request.getAge());
+
+            return userRepository.save(existingUser);
+        });
     }
 }

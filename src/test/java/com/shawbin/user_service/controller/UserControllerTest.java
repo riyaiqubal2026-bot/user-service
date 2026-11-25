@@ -1,6 +1,7 @@
 
 package com.shawbin.user_service.controller;
 
+import com.shawbin.user_service.dto.LoginRequest;
 import com.shawbin.user_service.dto.RegisterRequest;
 import com.shawbin.user_service.entity.User;
 import com.shawbin.user_service.exception.GlobalExceptionHandler;
@@ -219,4 +220,101 @@ class UserControllerTest {
 
         verify(userService).deleteUser(1L);
     }
+
+    private LoginRequest createLoginRequest() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("riya@example.com");
+        request.setPassword("Test@123");
+        return request;
+    }
+
+
+    @Test
+    void loginShouldReturnOkWhenCredentialsAreValid() throws Exception {
+
+        LoginRequest request = createLoginRequest();
+        User user = createUser();
+        user.setId(1L);
+
+        when(userService.login("riya@example.com", "Test@123"))
+                .thenReturn(user);
+
+        when(jwtService.generateToken(1L, "riya@example.com"))
+                .thenReturn("test-jwt-token");
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("test-jwt-token"))
+                .andExpect(jsonPath("$.userId").value(1))
+                .andExpect(jsonPath("$.name").value("Riya"))
+                .andExpect(jsonPath("$.email").value("riya@example.com"));
+
+        verify(userService).login("riya@example.com", "Test@123");
+        verify(jwtService).generateToken(1L, "riya@example.com");
+    }
+
+    @Test
+    void loginShouldReturnUnauthorizedWhenEmailIsInvalid() throws Exception {
+
+        LoginRequest request = createLoginRequest();
+
+        when(userService.login("riya@example.com", "Test@123"))
+                .thenThrow(new IllegalArgumentException(
+                        "Invalid email or password"));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        verify(jwtService, never()).generateToken(any(), any());
+    }
+
+    @Test
+    void loginShouldReturnUnauthorizedWhenPasswordIsIncorrect() throws Exception {
+
+        LoginRequest request = createLoginRequest();
+
+        when(userService.login("riya@example.com", "Test@123"))
+                .thenThrow(new IllegalArgumentException(
+                        "Invalid email or password"));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        verify(jwtService, never()).generateToken(any(), any());
+    }
+
+    @Test
+    void loginShouldReturnBadRequestWhenEmailIsMissing() throws Exception {
+
+        LoginRequest request = createLoginRequest();
+        request.setEmail("");
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).login(any(), any());
+    }
+
+    @Test
+    void loginShouldReturnBadRequestWhenPasswordIsMissing() throws Exception {
+
+        LoginRequest request = createLoginRequest();
+        request.setPassword("");
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).login(any(), any());
+    }
+
 }

@@ -1,5 +1,7 @@
+
 package com.shawbin.user_service.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -19,7 +21,9 @@ public class JwtService {
     private long expiration;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        return Keys.hmacShaKeyFor(
+                Decoders.BASE64.decode(secret)
+        );
     }
 
     public String generateToken(Long userId, String email) {
@@ -33,5 +37,33 @@ public class JwtService {
                 .expiration(new Date(now.getTime() + expiration))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public Claims extractAllClaims(String token) {
+
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    public Long extractUserId(String token) {
+
+        return Long.parseLong(
+                extractAllClaims(token).getSubject()
+        );
+    }
+
+    public boolean isTokenValid(String token) {
+
+        try {
+            Claims claims = extractAllClaims(token);
+
+            return claims.getExpiration().after(new Date());
+
+        } catch (Exception exception) {
+            return false;
+        }
     }
 }

@@ -218,4 +218,76 @@ public class UserServiceTest {
 
         verify(userRepository, never()).save(any(User.class));
     }
+
+
+    @Test
+    void loginShouldReturnUserWhenCredentialsAreValid() {
+
+        when(userRepository.findByEmail("riya@example.com"))
+                .thenReturn(Optional.of(user));
+
+        user.setPasswordHash("encodedPassword");
+
+        when(passwordEncoder.matches("Test@123", "encodedPassword"))
+                .thenReturn(true);
+
+        User result = userService.login("riya@example.com", "Test@123");
+
+        assertNotNull(result);
+        assertEquals("riya@example.com", result.getEmail());
+
+        verify(passwordEncoder).matches("Test@123", "encodedPassword");
+    }
+
+    @Test
+    void loginShouldThrowExceptionWhenEmailDoesNotExist() {
+
+        when(userRepository.findByEmail("unknown@example.com"))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.login("unknown@example.com", "Test@123")
+        );
+
+        assertEquals("Invalid email or password", exception.getMessage());
+
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+    }
+
+    @Test
+    void loginShouldThrowExceptionWhenPasswordIsIncorrect() {
+
+        user.setPasswordHash("encodedPassword");
+
+        when(userRepository.findByEmail("riya@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches("WrongPassword", "encodedPassword"))
+                .thenReturn(false);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.login("riya@example.com", "WrongPassword")
+        );
+
+        assertEquals("Invalid email or password", exception.getMessage());
+    }
+
+    @Test
+    void loginShouldUseEmailToFindUser() {
+
+        when(userRepository.findByEmail("riya@example.com"))
+                .thenReturn(Optional.of(user));
+
+        user.setPasswordHash("encodedPassword");
+
+        when(passwordEncoder.matches("Test@123", "encodedPassword"))
+                .thenReturn(true);
+
+        userService.login("riya@example.com", "Test@123");
+
+        verify(userRepository).findByEmail("riya@example.com");
+    }
+
 }
